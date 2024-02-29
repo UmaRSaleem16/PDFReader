@@ -1,72 +1,32 @@
-import React, { useEffect, useState } from "react";
-// import { Document, Page } from "react-pdf";
+import React, { useState, useEffect, useRef } from "react";
+import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 
-const PdfViewer = () => {
-  const [state, setState] = useState({
-    pdf: "https://backend.simplestudying.com/media/pdfs/6578yigufhugyf2da.pdf",
-    pageNumber: 1,
-    numPages: null,
-    pdfText: ''
-  });
-
-  const extractTextFromPdf = async (blob) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const text = reader.result;
-          const textRegex = /\(([^)]+)\)/g;
-          let match;
-          let textString = '';
-  
-          while ((match = textRegex.exec(text)) !== null) {
-            textString += match[1] + ' ';
-          }
-  
-          resolve(textString);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsText(blob);
-    });
-  };
-
-  const extractText = (content) => {
-    let text = '';
-
-    const matches = content.match(/\(([^)]+)\)/g);
-    if (matches) {
-        text = matches.map(match => match.slice(1, -1)).join(' ');
-    }
-    console.log(text, "texttt")
-
-    return text;
-  }
-    
-
-  const loadPdf = async () => {
-    try {
-      const response = await fetch(state.pdf);
-      const blob = await response.blob();
-      const text = await extractTextFromPdf(blob);
-      console.log(text, ":pppp");
-      const textContent = extractText(text)
-      console.log(textContent, "content")
-      setState((prev) => ({
-        ...prev,
-        pdfText: text
-      }));
-    } catch (error) {
-      console.error('Error loading PDF:', error);
-    }
-  };
-  
+function PDFViewer() {
+  const [pdfURL, setPdfURL] = useState(null);
+  const pdfLink =
+    "https://backend.simplestudying.com/media/pdfs/6578yigufhugyf2da.pdf";
+  const [numPages, setNumPages] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadPdf()
-  }, []);
+    async function fetchPDF() {
+      try {
+        const response = await fetch(pdfLink);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        setPdfURL(url);
+      } catch (error) {
+        console.error("Error fetching PDF:", error);
+      }
+    }
+
+    fetchPDF();
+
+    return () => {
+      URL.revokeObjectURL(pdfURL);
+    };
+  }, [pdfLink]);
 
   return (
     <div className="mainDiv">
@@ -79,11 +39,22 @@ const PdfViewer = () => {
         </div>
       </div>
       <div className="right-side">
-      <pre>{state.pdfText}</pre>
-
+        {pdfURL && (
+          <DocViewer
+            documents={[{ uri: pdfURL }]}
+            currentPage={currentPage}
+            loading={loading}
+            onLoadSuccess={({ numPages }) => {
+              setNumPages(numPages);
+              setLoading(false);
+            }}
+            pluginRenderers={DocViewerRenderers}
+            config={{ hideFileName: true }}
+          />
+        )}
       </div>
     </div>
   );
-};
+}
 
-export default PdfViewer;
+export default PDFViewer;
