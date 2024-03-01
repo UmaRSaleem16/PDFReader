@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import Loader from "./Loader";
 import { BsZoomOut, BsZoomIn } from "react-icons/bs";
+import { RiFullscreenFill } from "react-icons/ri";
 
 export default function App() {
   pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
@@ -12,6 +13,9 @@ export default function App() {
     pagePreviews: [],
     pageScale: 1.5,
     loading: true,
+    searchQuery: "",
+    isFullScreen: false,
+    highlightedText: [],
   });
 
   const url =
@@ -91,6 +95,69 @@ export default function App() {
     }));
   };
 
+  const handleSearch = async (e) => {
+    // const searchText = e;
+
+    let highLight = [];
+    for (let i = 1; i <= totalPages; i++) {
+      const pageText = await getPageText(i);
+      if (pageText.toLowerCase().includes(e)) {
+        const startIndex = pageText.toLowerCase().indexOf(e);
+        const endIndex = startIndex + e.length;
+        highLight.push({ page: i, startIndex, endIndex });
+      }
+    }
+    setPdfData((prev) => ({
+      ...prev,
+      highlightedText: highLight,
+    }));
+
+
+    // Do something with the search results (e.g., highlight matching text)
+  };
+
+  const getPageText = async (pageNumber) => {
+    try {
+      const doc = await pdfjs.getDocument(url).promise;
+      const page = await doc.getPage(pageNumber);
+      const textContent = await page.getTextContent();
+      const textItems = textContent.items.map((item) => item.str);
+      return textItems.join(" ");
+    } catch (error) {
+      console.error("Error fetching page text:", error);
+      return "";
+    }
+  };
+
+  const handleFullScreen = () => {
+    const elem = document.documentElement;
+    if (!pdfData.isFullScreen) {
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+    }
+    setPdfData((prev) => ({
+      ...prev,
+      isFullScreen: !prev.isFullScreen,
+    }));
+  };
+
   const { totalPages, pageNumber, pagePreviews, pageScale, loading } = pdfData;
 
   return (
@@ -122,17 +189,57 @@ export default function App() {
       </div>
       <div className="right-side">
         <div className="button-container">
-          <button onClick={() => handleZoom("out")} disabled={pageScale <= 0.3}>
-            <BsZoomOut />
+          {/* <input
+            type={"text"}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="inputField"
+            placeholder="Search"
+          /> */}
+          <button
+            className="button-back"
+            onClick={() => handleZoom("out")}
+            disabled={pageScale <= 0.3}
+          >
+            <BsZoomOut
+              style={{
+                heigh: "20px",
+                width: "20px",
+                marginTop: "-4px",
+                color: "#fff",
+              }}
+            />
           </button>
-          <button onClick={() => handleZoom("in")} disabled={pageScale >= 3}>
-            <BsZoomIn />
+          <button
+            className="button-back"
+            onClick={() => handleZoom("in")}
+            disabled={pageScale >= 3}
+          >
+            <BsZoomIn
+              style={{
+                heigh: "20px",
+                width: "20px",
+                marginTop: "-4px",
+                color: "#fff",
+              }}
+            />
+          </button>
+          <button onClick={handleFullScreen} className="button-back">
+            <RiFullscreenFill
+              className="button-icon"
+              style={{
+                heigh: "20px",
+                width: "20px",
+                marginTop: "-4px",
+                color: "#fff",
+              }}
+            />
           </button>
         </div>
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
           loading={<Loader />}
+          
         >
           <Page pageNumber={pageNumber} scale={pageScale} />
         </Document>
