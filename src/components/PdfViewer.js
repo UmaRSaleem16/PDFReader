@@ -1,60 +1,60 @@
-import React, { useState, useEffect, useRef } from "react";
-import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
+import React, { useState, useEffect } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
 
-function PDFViewer() {
-  const [pdfURL, setPdfURL] = useState(null);
-  const pdfLink =
+export default function App() {
+  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
+  const [totalPages, setTotalPages] = useState(0);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageScale, setPageScale] = useState(1);
+  const [pagePreviews, setPagePreviews] = useState([]);
+
+  const url =
     "https://backend.simplestudying.com/media/pdfs/6578yigufhugyf2da.pdf";
-  const [numPages, setNumPages] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchPDF() {
-      try {
-        const response = await fetch(pdfLink);
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        setPdfURL(url);
-      } catch (error) {
-        console.error("Error fetching PDF:", error);
-      }
+    fetchPagePreviews();
+  }, [totalPages]);
+
+  function onDocumentLoadSuccess({ numPages }) {
+    setTotalPages(numPages);
+  }
+
+  function handleThumbnailClick(pageIndex) {
+    setPageNumber(pageIndex + 1);
+  }
+
+  async function fetchPagePreviews() {
+    const previews = [];
+    for (let i = 0; i < totalPages; i++) {
+      const previewUrl = `${url}#page=${i + 1}`;
+      previews.push(previewUrl);
     }
-
-    fetchPDF();
-
-    return () => {
-      URL.revokeObjectURL(pdfURL);
-    };
-  }, [pdfLink]);
+    setPagePreviews(previews);
+  }
 
   return (
     <div className="mainDiv">
       <div className="left-side">
         <div className="leftSideHeader">
-          <h3> Table of Contents </h3>
+          <h3>Table of Contents</h3>
         </div>
         <div className="leftSideContent">
-          <div className="boxOne">faizan khan</div>
+          {pagePreviews.map((previewUrl, index) => (
+            <div
+              key={index}
+              className="boxOne"
+              onClick={() => handleThumbnailClick(index)}
+            >
+              <img src={previewUrl} alt={`Page ${index + 1}`} />
+            </div>
+          ))}
         </div>
       </div>
       <div className="right-side">
-        {pdfURL && (
-          <DocViewer
-            documents={[{ uri: pdfURL }]}
-            currentPage={currentPage}
-            loading={loading}
-            onLoadSuccess={({ numPages }) => {
-              setNumPages(numPages);
-              setLoading(false);
-            }}
-            pluginRenderers={DocViewerRenderers}
-            config={{ hideFileName: true }}
-          />
-        )}
+        <Document file={url} onLoadSuccess={onDocumentLoadSuccess}>
+          <Page pageNumber={pageNumber} scale={pageScale} />
+        </Document>
       </div>
     </div>
   );
 }
-
-export default PDFViewer;
