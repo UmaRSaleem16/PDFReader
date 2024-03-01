@@ -5,7 +5,6 @@ export default function App() {
   pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
   const [totalPages, setTotalPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageScale, setPageScale] = useState(1);
   const [pagePreviews, setPagePreviews] = useState([]);
 
   const url =
@@ -19,18 +18,37 @@ export default function App() {
     setTotalPages(numPages);
   }
 
+  async function fetchPagePreviews() {
+    // debugger;
+    if (totalPages > 0) {
+      const previews = [];
+      for (let i = 1; i <= totalPages; i++) {
+        const page = await pdfjs
+          .getDocument(url)
+          .promise.then((doc) => doc.getPage(i));
+        const scale = 0.5;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+        const renderTask = page.render(renderContext);
+        await renderTask.promise;
+        previews.push(canvas.toDataURL("image/png"));
+      }
+      setPagePreviews(previews);
+    }
+  }
+
   function handleThumbnailClick(pageIndex) {
     setPageNumber(pageIndex + 1);
   }
 
-  async function fetchPagePreviews() {
-    const previews = [];
-    for (let i = 0; i < totalPages; i++) {
-      const previewUrl = `${url}#page=${i + 1}`;
-      previews.push(previewUrl);
-    }
-    setPagePreviews(previews);
-  }
+  console.log(pagePreviews, "000");
 
   return (
     <div className="mainDiv">
@@ -45,14 +63,18 @@ export default function App() {
               className="boxOne"
               onClick={() => handleThumbnailClick(index)}
             >
-              <img src={previewUrl} alt={`Page ${index + 1}`} />
+              <img
+                src={previewUrl}
+                alt={`Page ${index + 1}`}
+                style={{ width: "100%" }}
+              />
             </div>
           ))}
         </div>
       </div>
       <div className="right-side">
         <Document file={url} onLoadSuccess={onDocumentLoadSuccess}>
-          <Page pageNumber={pageNumber} scale={pageScale} />
+          <Page pageNumber={pageNumber} />
         </Document>
       </div>
     </div>
