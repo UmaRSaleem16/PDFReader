@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import Loader from "./Loader";
 import { BsZoomOut, BsZoomIn } from "react-icons/bs";
 import { RiFullscreenFill } from "react-icons/ri";
 
-export default function App() {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
+const App = () => {
   const [pdfData, setPdfData] = useState({
     totalPages: 0,
     pageNumber: 1,
@@ -25,38 +25,17 @@ export default function App() {
     fetchPagePreviews();
   }, [pdfData.totalPages]);
 
-  const onDocumentLoadSuccess = ({ numPages }) => {
-    setPdfData((prevData) => ({
-      ...prevData,
-      totalPages: numPages,
-    }));
-  };
-
-  const handleZoom = (zoomType) => {
-    const { pageScale } = pdfData;
-    const newScale =
-      zoomType === "in"
-        ? Math.min(pageScale + 0.2, 3)
-        : Math.max(pageScale - 0.2, 0.3);
-    setPdfData((prevData) => ({
-      ...prevData,
-      pageScale: newScale,
-    }));
-  };
+  useEffect(() => {
+    handleSearch();
+  }, [pdfData.searchQuery]);
 
   const fetchPagePreviews = async () => {
     try {
-      setPdfData((prevData) => ({
-        ...prevData,
-        loading: true,
-      }));
-      const { totalPages } = pdfData;
-      if (totalPages > 0) {
-        const previews = [];
-        for (let i = 1; i <= totalPages; i++) {
+      const previews = await Promise.all(
+        Array.from({ length: pdfData.totalPages }, async (_, i) => {
           const page = await pdfjs
             .getDocument(url)
-            .promise.then((doc) => doc.getPage(i));
+            .promise.then((doc) => doc.getPage(i + 1));
           const scale = 0.5;
           const viewport = page.getViewport({ scale });
           const canvas = document.createElement("canvas");
@@ -70,14 +49,14 @@ export default function App() {
           };
           const renderTask = page.render(renderContext);
           await renderTask.promise;
-          previews.push(canvas.toDataURL("image/png"));
           page.cleanup();
-        }
-        setPdfData((prevData) => ({
-          ...prevData,
-          pagePreviews: previews,
-        }));
-      }
+          return canvas.toDataURL("image/png");
+        })
+      );
+      setPdfData((prevData) => ({
+        ...prevData,
+        pagePreviews: previews,
+      }));
     } catch (error) {
       console.error("Error fetching page previews:", error);
     } finally {
@@ -124,7 +103,63 @@ export default function App() {
     }));
   };
 
-  const { totalPages, pageNumber, pagePreviews, pageScale, loading } = pdfData;
+  const onDocumentLoadSuccess = ({ numPages }) => {
+    setPdfData((prevData) => ({
+      ...prevData,
+      totalPages: numPages,
+    }));
+  };
+
+  const handleZoom = (zoomType) => {
+    const { pageScale } = pdfData;
+    const newScale =
+      zoomType === "in"
+        ? Math.min(pageScale + 0.2, 3)
+        : Math.max(pageScale - 0.2, 0.3);
+    setPdfData((prevData) => ({
+      ...prevData,
+      pageScale: newScale,
+    }));
+  };
+
+  const handleSearch = async () => {
+    const { searchQuery, totalPages } = pdfData;
+    if (!searchQuery || !totalPages) return;
+    const highlights = [];
+
+    try {
+      for (let i = 1; i <= totalPages; i++) {
+        const page = await pdfjs
+          .getDocument(url)
+          .promise.then((doc) => doc.getPage(i));
+        const textContent = await page.getTextContent();
+
+        for (let j = 0; j < textContent.items.length; j++) {
+          const textItem = textContent.items[j];
+          if (textItem.str.toLowerCase().includes(searchQuery.toLowerCase())) {
+            highlights.push({ pageIndex: i, textItem });
+          }
+        }
+      }
+
+      console.log(highlights, "mmmmmm");
+      setPdfData((prevData) => ({
+        ...prevData,
+        highlightedText: highlights,
+      }));
+    } catch (error) {
+      console.error("Error searching text:", error);
+    }
+  };
+
+  useEffect(() => {
+    console.log(pdfData.highlightedText, "oooooooo");
+  }, [pdfData.highlightedText]);
+
+  console.log(pdfData.highlightedText, "hieghlight");
+
+  const { pageNumber, pagePreviews, pageScale, loading, highlightedText } =
+    pdfData;
 
   return (
     <div className="mainDiv">
@@ -142,7 +177,6 @@ export default function App() {
                 className="boxOne"
                 onClick={() => handleThumbnailClick(index)}
               >
-                {/* <p>Page: {index + 1}</p> */}
                 <img
                   src={previewUrl}
                   alt={`Page ${index + 1}`}
@@ -155,12 +189,19 @@ export default function App() {
       </div>
       <div className="right-side">
         <div className="button-container">
-          {/* <input
+          <input
             type={"text"}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => {
+              setTimeout(() => {
+                setPdfData((prevData) => ({
+                  ...prevData,
+                  searchQuery: e.target.value,
+                }));
+              }, 500);
+            }}
             className="inputField"
             placeholder="Search"
-          /> */}
+          />
           <button
             className="button-back"
             onClick={() => handleZoom("out")}
@@ -168,7 +209,7 @@ export default function App() {
           >
             <BsZoomOut
               style={{
-                heigh: "20px",
+                height: "20px",
                 width: "20px",
                 marginTop: "-4px",
                 color: "#fff",
@@ -182,7 +223,7 @@ export default function App() {
           >
             <BsZoomIn
               style={{
-                heigh: "20px",
+                height: "20px",
                 width: "20px",
                 marginTop: "-4px",
                 color: "#fff",
@@ -193,7 +234,7 @@ export default function App() {
             <RiFullscreenFill
               className="button-icon"
               style={{
-                heigh: "20px",
+                height: "20px",
                 width: "20px",
                 marginTop: "-4px",
                 color: "#fff",
@@ -205,11 +246,33 @@ export default function App() {
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
           loading={<Loader />}
-          
         >
-          <Page pageNumber={pageNumber} scale={pageScale} />
+          <Page
+            pageNumber={pageNumber}
+            scale={pageScale}
+            customTextRenderer={(textItem, pageIndex) => {
+              const isHighlighted = highlightedText.some(
+                (highlight) =>
+                  highlight.pageIndex === pageIndex + 1 &&
+                  highlight.textItem.str === textItem.str
+              );
+
+              return (
+                <span
+                  key={`text_${pageIndex}_${textItem.str}`}
+                  style={{
+                    backgroundColor: isHighlighted ? "yellow" : "transparent",
+                  }}
+                >
+                  {textItem.str}
+                </span>
+              );
+            }}
+          />
         </Document>
       </div>
     </div>
   );
-}
+};
+
+export default App;
