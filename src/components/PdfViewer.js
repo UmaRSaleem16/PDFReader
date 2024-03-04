@@ -95,40 +95,6 @@ export default function App() {
     }));
   };
 
-  const handleSearch = async (e) => {
-    // const searchText = e;
-
-    let highLight = [];
-    for (let i = 1; i <= totalPages; i++) {
-      const pageText = await getPageText(i);
-      if (pageText.toLowerCase().includes(e)) {
-        const startIndex = pageText.toLowerCase().indexOf(e);
-        const endIndex = startIndex + e.length;
-        highLight.push({ page: i, startIndex, endIndex });
-      }
-    }
-    setPdfData((prev) => ({
-      ...prev,
-      highlightedText: highLight,
-    }));
-
-
-    // Do something with the search results (e.g., highlight matching text)
-  };
-
-  const getPageText = async (pageNumber) => {
-    try {
-      const doc = await pdfjs.getDocument(url).promise;
-      const page = await doc.getPage(pageNumber);
-      const textContent = await page.getTextContent();
-      const textItems = textContent.items.map((item) => item.str);
-      return textItems.join(" ");
-    } catch (error) {
-      console.error("Error fetching page text:", error);
-      return "";
-    }
-  };
-
   const handleFullScreen = () => {
     const elem = document.documentElement;
     if (!pdfData.isFullScreen) {
