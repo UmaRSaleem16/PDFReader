@@ -36,24 +36,34 @@
     transform: rotate(360deg);
   }
 }
+body{
+  max-width: 100%;
+  overflow: hidden;
+}
+#root{
+  max-width: 100%;
+  overflow: hidden;
+}
 
 .mainDiv {
-  width: 97%;
+  width: 99%;
   /* background-color: bisque; */
   display: flex;
   justify-content: space-between;
-  padding: 20px;
+  padding: 20px 10px;
   background: #f7f7f7;
-  gap: 25px;
+  gap: 20px;
+  max-width: 99%;
+  margin: 0 auto;
 }
 .boxOne {
   border: 2px solid #d76422;
   border-radius: 14px;
   padding: 4px;
   min-height: 120px;
-  max-height: 225px;
-  margin: 0 auto 30px;
-  width: 80%;
+  max-height: 100%;
+  margin: 0 auto 25px;
+  width: 85%;
   cursor: pointer;
 }
 
@@ -66,13 +76,14 @@
   padding: 20px;
   height: 100vh !important;
   overflow: scroll;
+  min-width: 340px;
 }
 .leftSideContent {
-  padding: 20px 50px;
+  padding: 20px 35px;
 }
 
 .right-side {
-  width: 70%;
+  width: 72%;
   border-radius: 10%;
   background: #fff;
   border-radius: 14px;
@@ -90,6 +101,10 @@
   width: 100% !important;
   height: 100% !important;
 } */
+
+canvas.react-pdf__Page__canvas{
+ width: -webkit-fill-available !important;
+}
 
 .react-pdf__Page__annotations.annotationLayer {
   display: none;
