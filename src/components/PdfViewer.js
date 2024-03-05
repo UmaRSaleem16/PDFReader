@@ -124,6 +124,12 @@ export default function App() {
     }));
   };
 
+  const handleSearch = (text) => {
+    console.log(text, "text")
+    let canvas = document.getElementsByTagName('Document')
+    console.log(canvas, "ppp")
+  }
+
   const { totalPages, pageNumber, pagePreviews, pageScale, loading } = pdfData;
 
   return (
@@ -155,12 +161,12 @@ export default function App() {
       </div>
       <div className="right-side">
         <div className="button-container">
-          {/* <input
+          <input
             type={"text"}
             onChange={(e) => handleSearch(e.target.value)}
             className="inputField"
             placeholder="Search"
-          /> */}
+          />
           <button
             className="button-back"
             onClick={() => handleZoom("out")}
@@ -204,8 +210,8 @@ export default function App() {
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
+          renderTextLayer={true}
           loading={<Loader />}
-          
         >
           <Page pageNumber={pageNumber} scale={pageScale} />
         </Document>
