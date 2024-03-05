@@ -95,40 +95,6 @@ export default function App() {
     }));
   };
 
-  const handleSearch = async (e) => {
-    // const searchText = e;
-
-    let highLight = [];
-    for (let i = 1; i <= totalPages; i++) {
-      const pageText = await getPageText(i);
-      if (pageText.toLowerCase().includes(e)) {
-        const startIndex = pageText.toLowerCase().indexOf(e);
-        const endIndex = startIndex + e.length;
-        highLight.push({ page: i, startIndex, endIndex });
-      }
-    }
-    setPdfData((prev) => ({
-      ...prev,
-      highlightedText: highLight,
-    }));
-
-
-    // Do something with the search results (e.g., highlight matching text)
-  };
-
-  const getPageText = async (pageNumber) => {
-    try {
-      const doc = await pdfjs.getDocument(url).promise;
-      const page = await doc.getPage(pageNumber);
-      const textContent = await page.getTextContent();
-      const textItems = textContent.items.map((item) => item.str);
-      return textItems.join(" ");
-    } catch (error) {
-      console.error("Error fetching page text:", error);
-      return "";
-    }
-  };
-
   const handleFullScreen = () => {
     const elem = document.documentElement;
     if (!pdfData.isFullScreen) {
@@ -157,6 +123,12 @@ export default function App() {
       isFullScreen: !prev.isFullScreen,
     }));
   };
+
+  const handleSearch = (text) => {
+    console.log(text, "text")
+    let canvas = document.getElementsByTagName('Document')
+    console.log(canvas, "ppp")
+  }
 
   const { totalPages, pageNumber, pagePreviews, pageScale, loading } = pdfData;
 
@@ -189,12 +161,12 @@ export default function App() {
       </div>
       <div className="right-side">
         <div className="button-container">
-          {/* <input
+          <input
             type={"text"}
             onChange={(e) => handleSearch(e.target.value)}
             className="inputField"
             placeholder="Search"
-          /> */}
+          />
           <button
             className="button-back"
             onClick={() => handleZoom("out")}
@@ -238,8 +210,8 @@ export default function App() {
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
+          renderTextLayer={true}
           loading={<Loader />}
-          
         >
           <Page pageNumber={pageNumber} scale={pageScale} />
         </Document>
